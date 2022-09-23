@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:tokokita/bloc/logout_bloc.dart';
+import 'package:tokokita/bloc/produk.dart';
 import 'package:tokokita/model/produk.dart';
+import 'package:tokokita/ui/login_page.dart';
 import 'package:tokokita/ui/produk_detail.dart';
 import 'package:tokokita/ui/produk_form.dart';
 
@@ -17,16 +20,18 @@ class _ProdukPageState extends State<ProdukPage> {
         title: Text('List Produk'),
         actions: [
           Padding(
-            padding: EdgeInsets.only(right: 20.0),
-            child: GestureDetector(
-              child: Icon(Icons.add, size: 26.0),
-              onTap: () async {
-                Navigator.push(
-                  context,
-                  new MaterialPageRoute(
-                    builder: (context) => ProdukForm(produk: Produk(),)));
-              },
-            ))
+              padding: EdgeInsets.only(right: 20.0),
+              child: GestureDetector(
+                child: Icon(Icons.add, size: 26.0),
+                onTap: () async {
+                  Navigator.push(
+                      context,
+                      new MaterialPageRoute(
+                          builder: (context) => ProdukForm(
+                                produk: Produk(),
+                              )));
+                },
+              ))
         ],
       ),
       drawer: Drawer(
@@ -35,36 +40,62 @@ class _ProdukPageState extends State<ProdukPage> {
             ListTile(
               title: Text('Logout'),
               trailing: Icon(Icons.logout),
-              onTap: () async {},
+              onTap: () async {
+                await LogoutBloc.logout().then((value) {
+                  Navigator.pushReplacement(context,
+                      new MaterialPageRoute(builder: (context) => LoginPage()));
+                });
+              },
             )
           ],
         ),
       ),
-      body: ListView(
-        children: [
-          ItemProduk(produk: Produk(id: 1, kodeProduk: 'A001', namaProduk: 'VGA', hargaProduk: 5000000)),
-          ItemProduk(produk: Produk(id: 2, kodeProduk: 'A002', namaProduk: 'SSD', hargaProduk: 2000000)),
-          ItemProduk(produk: Produk(id: 3, kodeProduk: 'A003', namaProduk: 'HDD', hargaProduk: 1000000)),
-        ],
+      body: FutureBuilder<List>(
+        future: ProdukBloc.getProduk(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) print(snapshot.error);
+          return snapshot.hasData
+              ? ListProduk(
+                  list: snapshot.data ?? [],
+                )
+              : Center(
+                  child: CircularProgressIndicator(),
+                );
+        },
       ),
     );
   }
 }
 
+class ListProduk extends StatelessWidget {
+  final List list;
+  ListProduk({required this.list});
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        itemCount: list == null ? 0 : list.length,
+        itemBuilder: (context, i) {
+          return ItemProduk(
+            produk: list[i],
+          );
+        });
+  }
+}
+
 class ItemProduk extends StatelessWidget {
   final Produk produk;
-
   ItemProduk({required this.produk});
-
   @override
   Widget build(BuildContext context) {
     return Container(
       child: GestureDetector(
         onTap: () {
           Navigator.push(
-            context,
-            new MaterialPageRoute(
-              builder: (context) => ProdukDetail(produk: produk,)));
+              context,
+              new MaterialPageRoute(
+                  builder: (context) => ProdukDetail(
+                        produk: produk,
+                      )));
         },
         child: Card(
           child: ListTile(
